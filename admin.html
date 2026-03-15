@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — AR Gallery</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="index.html" class="nav-brand">AR GALLERY</a>
+    <div class="nav-links">
+      <a href="index.html">Inicio</a>
+      <a href="admin.html" class="active">Admin</a>
+      <a href="ar.html">Ver AR</a>
+    </div>
+  </nav>
+
+  <div class="admin-container">
+    <div class="section-header" style="margin-bottom: 2rem;">
+      <h2>Panel de Administración</h2>
+      <p>Sube y organiza los posters de tu exposición</p>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="uploadZone">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <h3>Arrastra imágenes aquí</h3>
+      <p>o haz clic para seleccionar — JPG, PNG, WebP</p>
+      <input type="file" id="fileInput" multiple accept="image/*">
+    </div>
+
+    <!-- Actions -->
+    <div class="admin-actions">
+      <div class="poster-count" id="posterCount">0 posters</div>
+      <div style="flex:1"></div>
+      <button class="btn btn-danger btn-sm" id="clearAllBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Borrar todo
+      </button>
+    </div>
+
+    <!-- Poster Grid -->
+    <div class="poster-grid" id="posterGrid"></div>
+    <div class="empty-state" id="emptyState">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <p>No hay posters todavía.<br>Sube imágenes para comenzar tu exposición.</p>
+    </div>
+
+    <!-- Marker Section -->
+    <div class="marker-section">
+      <h3>Marcador AR</h3>
+      <p>Imprime este marcador y colócalo donde quieras ver la exposición. Es siempre el mismo código.</p>
+      <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" alt="Marcador Hiro" id="markerImg">
+      <br>
+      <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" download="marcador-ar-gallery.png" class="btn btn-secondary btn-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar marcador
+      </a>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+      <h3>Borrar todos los posters</h3>
+      <p>Esta acción eliminará todos los posters cargados. No se puede deshacer.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-sm" id="cancelDelete">Cancelar</button>
+        <button class="btn btn-danger btn-sm" id="confirmDelete">Borrar todo</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { addPoster, getPosters, deletePoster, clearAllPosters } from './js/storage.js';
+
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const posterGrid = document.getElementById('posterGrid');
+    const emptyState = document.getElementById('emptyState');
+    const posterCount = document.getElementById('posterCount');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const confirmModal = document.getElementById('confirmModal');
+    const cancelDelete = document.getElementById('cancelDelete');
+    const confirmDelete = document.getElementById('confirmDelete');
+
+    // Drag & drop
+    ['dragenter', 'dragover'].forEach(evt => {
+      uploadZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+      uploadZone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+      });
+    });
+    uploadZone.addEventListener('drop', (e) => {
+      handleFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', () => {
+      handleFiles(fileInput.files);
+      fileInput.value = '';
+    });
+
+    async function handleFiles(files) {
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+        const dataURL = await readFileAsDataURL(file);
+        await addPoster(dataURL, file.name.replace(/\.[^.]+$/, ''));
+      }
+      await renderPosters();
+    }
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function renderPosters() {
+      const posters = await getPosters();
+      posterCount.textContent = `${posters.length} poster${posters.length !== 1 ? 's' : ''}`;
+      emptyState.style.display = posters.length === 0 ? 'block' : 'none';
+      posterGrid.innerHTML = '';
+      posters.forEach((poster) => {
+        const card = document.createElement('div');
+        card.className = 'poster-card';
+        card.innerHTML = `
+          <img src="${poster.image}" alt="${poster.title || 'Poster'}">
+          <div class="poster-card-info">
+            <input type="text" value="${poster.title || ''}" placeholder="Sin título" readonly>
+            <button class="btn-icon" data-id="${poster.id}" title="Eliminar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        `;
+        card.querySelector('.btn-icon').addEventListener('click', async () => {
+          await deletePoster(poster.id);
+          await renderPosters();
+        });
+        posterGrid.appendChild(card);
+      });
+    }
+
+    // Clear all
+    clearAllBtn.addEventListener('click', () => {
+      confirmModal.classList.add('active');
+    });
+    cancelDelete.addEventListener('click', () => {
+      confirmModal.classList.remove('active');
+    });
+    confirmDelete.addEventListener('click', async () => {
+      await clearAllPosters();
+      confirmModal.classList.remove('active');
+      await renderPosters();
+    });
+    confirmModal.addEventListener('click', (e) => {
+      if (e.target === confirmModal) confirmModal.classList.remove('active');
+    });
+
+    // Init
+    renderPosters();
+  </script>
+
+</body>
+</html>

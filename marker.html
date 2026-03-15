@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marcador AR — AR Gallery</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: white; color: #111; }
+
+    @media screen {
+      body { background: #0a0a0a; color: #f0f0f0; }
+      .print-page { background: white; color: #111; max-width: 700px; margin: 2rem auto; padding: 3rem; border-radius: 12px; }
+    }
+
+    .print-page {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.9375rem;
+      margin-bottom: 2rem;
+    }
+
+    .marker-container {
+      display: inline-block;
+      padding: 20px;
+      border: 3px solid #111;
+    }
+
+    .marker-container img {
+      width: 300px;
+      height: 300px;
+      display: block;
+    }
+
+    .instructions {
+      margin-top: 2rem;
+      text-align: left;
+      max-width: 450px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .instructions h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      margin-bottom: 0.75rem;
+    }
+
+    .instructions ol {
+      padding-left: 1.5rem;
+      line-height: 1.8;
+      font-size: 0.9375rem;
+      color: #444;
+    }
+
+    .print-btn {
+      margin-top: 2rem;
+      background: #111;
+      color: white;
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    @media screen and (prefers-color-scheme: dark) {
+      .print-btn { background: #e8ff47; color: #111; }
+    }
+
+    @media print {
+      .print-btn, .back-link { display: none !important; }
+      body { background: white; color: #111; }
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: #888;
+      font-size: 0.8125rem;
+      text-decoration: none;
+    }
+    @media screen {
+      .back-link:hover { color: #e8ff47; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-page">
+    <h1>AR Gallery — Marcador</h1>
+    <p class="subtitle">Imprime esta página y coloca el marcador donde quieras ver la exposición</p>
+
+    <div class="marker-container">
+      <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" alt="Marcador HIRO AR">
+    </div>
+
+    <div class="instructions">
+      <h3>Instrucciones</h3>
+      <ol>
+        <li>Imprime esta página en tamaño completo (sin escalar).</li>
+        <li>Recorta el marcador y pégalo en la pared o superficie donde quieras la exposición.</li>
+        <li>Abre <strong>ar.html</strong> desde tu celular.</li>
+        <li>Apunta la cámara al marcador y verás los posters desplegarse.</li>
+      </ol>
+    </div>
+
+    <button class="print-btn" onclick="window.print()">Imprimir marcador</button>
+    <br>
+    <a href="index.html" class="back-link">Volver al inicio</a>
+  </div>
+</body>
+</html>
