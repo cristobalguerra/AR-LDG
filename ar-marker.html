@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR Marcador — AR Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { overflow: hidden; font-family: sans-serif; }
+
+    #loading {
+      position: fixed; inset: 0; background: #0a0a0a;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 999; color: #f0f0f0; transition: opacity 0.5s;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+    #loading h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    #loading p { color: #888; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid #333;
+      border-top-color: #e8ff47; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #backBtn {
+      position: fixed; top: 1rem; left: 1rem; z-index: 100;
+      background: rgba(0,0,0,0.7); color: white; border: none;
+      padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem;
+      cursor: pointer; backdrop-filter: blur(10px); text-decoration: none;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+
+    #infoBadge {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      z-index: 100; background: rgba(0,0,0,0.75); color: white;
+      padding: 0.6rem 1.2rem; border-radius: 20px; font-size: 0.8125rem;
+      backdrop-filter: blur(10px); white-space: nowrap;
+    }
+
+    #noPosters {
+      position: fixed; inset: 0; background: #0a0a0a;
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; z-index: 998; color: #f0f0f0;
+      text-align: center; padding: 2rem;
+    }
+    #noPosters h2 { margin-bottom: 0.5rem; }
+    #noPosters p { color: #888; margin-bottom: 1.5rem; }
+    #noPosters a {
+      background: #e8ff47; color: #0a0a0a; padding: 0.75rem 1.5rem;
+      border-radius: 8px; text-decoration: none; font-weight: 600;
+    }
+  </style>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+</head>
+<body>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <h2 style="margin-top:1.5rem">Cargando AR</h2>
+    <p>Apunta la cámara al marcador impreso</p>
+  </div>
+
+  <div id="noPosters">
+    <h2>No hay posters</h2>
+    <p>Primero sube algunos posters desde el panel de admin.</p>
+    <a href="admin.html">Ir al Admin</a>
+  </div>
+
+  <a href="ar.html" id="backBtn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Volver
+  </a>
+  <div id="infoBadge">Apunta al marcador para ver la exposición</div>
+
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true; colorManagement: true"
+    id="arScene"
+    style="display:none"
+  >
+    <a-assets id="arAssets"></a-assets>
+    <a-marker preset="hiro" id="hikoMarker" smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2">
+      <a-entity id="galleryRoot"></a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script type="module">
+    import { getPosters } from './js/storage.js';
+
+    const loading = document.getElementById('loading');
+    const noPostersEl = document.getElementById('noPosters');
+    const arScene = document.getElementById('arScene');
+    const arAssets = document.getElementById('arAssets');
+    const galleryRoot = document.getElementById('galleryRoot');
+    const infoBadge = document.getElementById('infoBadge');
+
+    async function init() {
+      let posters = [];
+      try {
+        posters = await getPosters();
+      } catch (e) {
+        console.error('Error loading posters:', e);
+      }
+
+      if (posters.length === 0) {
+        loading.style.display = 'none';
+        noPostersEl.style.display = 'flex';
+        return;
+      }
+
+      posters.forEach((poster, i) => {
+        const img = document.createElement('img');
+        img.id = `poster-${i}`;
+        img.src = poster.image;
+        img.setAttribute('crossorigin', 'anonymous');
+        arAssets.appendChild(img);
+      });
+
+      const posterWidth = 1;
+      const posterHeight = 1.4;
+      const gap = 0.15;
+      const totalWidth = posters.length * posterWidth + (posters.length - 1) * gap;
+      const startX = -totalWidth / 2 + posterWidth / 2;
+
+      // Wall
+      const wall = document.createElement('a-plane');
+      wall.setAttribute('width', totalWidth + 0.4);
+      wall.setAttribute('height', posterHeight + 0.6);
+      wall.setAttribute('position', `0 ${posterHeight / 2 + 0.1} -0.05`);
+      wall.setAttribute('material', 'shader: flat; color: #1a1a1a');
+      galleryRoot.appendChild(wall);
+
+      posters.forEach((poster, i) => {
+        const x = startX + i * (posterWidth + gap);
+        const y = posterHeight / 2 + 0.1;
+
+        const frame = document.createElement('a-plane');
+        frame.setAttribute('width', posterWidth + 0.08);
+        frame.setAttribute('height', posterHeight + 0.08);
+        frame.setAttribute('position', `${x} ${y} -0.01`);
+        frame.setAttribute('material', 'shader: flat; color: #ffffff');
+        galleryRoot.appendChild(frame);
+
+        const plane = document.createElement('a-plane');
+        plane.setAttribute('width', posterWidth);
+        plane.setAttribute('height', posterHeight);
+        plane.setAttribute('position', `${x} ${y} 0`);
+        plane.setAttribute('src', `#poster-${i}`);
+        plane.setAttribute('material', 'shader: flat');
+        galleryRoot.appendChild(plane);
+
+        if (poster.title) {
+          const label = document.createElement('a-text');
+          label.setAttribute('value', poster.title);
+          label.setAttribute('position', `${x} -0.1 0`);
+          label.setAttribute('align', 'center');
+          label.setAttribute('color', '#aaa');
+          label.setAttribute('width', posterWidth * 2);
+          galleryRoot.appendChild(label);
+        }
+      });
+
+      arScene.style.display = '';
+      setTimeout(() => loading.classList.add('hidden'), 1500);
+
+      const marker = document.getElementById('hikoMarker');
+      marker.addEventListener('markerFound', () => {
+        infoBadge.textContent = `Exposición: ${posters.length} poster${posters.length !== 1 ? 's' : ''}`;
+      });
+      marker.addEventListener('markerLost', () => {
+        infoBadge.textContent = 'Apunta al marcador para ver la exposición';
+      });
+    }
+
+    init();
+  </script>
+
+</body>
+</html>

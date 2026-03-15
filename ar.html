@@ -4,463 +4,145 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AR Experience — AR Gallery</title>
+  <link rel="stylesheet" href="css/style.css">
   <style>
-    * { margin: 0; padding: 0; }
-    body { overflow: hidden; font-family: sans-serif; background: #000; }
-
-    /* Loading overlay */
-    #loading {
-      position: fixed;
-      inset: 0;
-      background: #0a0a0a;
+    .ar-chooser {
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      z-index: 999;
-      color: #f0f0f0;
-      transition: opacity 0.5s;
+      text-align: center;
+      padding: 2rem;
     }
-    #loading.hidden { opacity: 0; pointer-events: none; }
-    #loading h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    #loading p { color: #888; font-size: 0.875rem; margin-bottom: 1.5rem; text-align: center; padding: 0 2rem; }
-    .spinner {
-      width: 40px; height: 40px;
-      border: 3px solid #333;
-      border-top-color: #e8ff47;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .ar-chooser h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Reticle indicator */
-    #reticle-indicator {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 40px;
-      height: 40px;
-      border: 2px solid rgba(232, 255, 71, 0.6);
-      border-radius: 50%;
-      z-index: 50;
-      pointer-events: none;
-      display: none;
+    .ar-chooser p {
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+      max-width: 400px;
     }
-    #reticle-indicator::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 6px;
-      height: 6px;
-      background: rgba(232, 255, 71, 0.8);
-      border-radius: 50%;
-    }
-
-    /* Back button */
-    #backBtn {
-      position: fixed;
-      top: env(safe-area-inset-top, 1rem);
-      left: 1rem;
-      z-index: 100;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      cursor: pointer;
-      backdrop-filter: blur(10px);
-      text-decoration: none;
+    .ar-modes {
       display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 360px;
+    }
+    .ar-mode-card {
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 0.4rem;
-      margin-top: 0.5rem;
+      gap: 0.5rem;
+      padding: 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s;
     }
-
-    /* Place button */
-    #placeBtn {
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      background: #e8ff47;
-      color: #0a0a0a;
-      border: none;
-      padding: 0.875rem 2rem;
-      border-radius: 30px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      display: none;
-      font-family: sans-serif;
-      box-shadow: 0 4px 20px rgba(232, 255, 71, 0.3);
+    .ar-mode-card:hover {
+      border-color: var(--accent);
     }
-    #placeBtn:active { transform: translateX(-50%) scale(0.95); }
-
-    /* Info badge */
-    #infoBadge {
-      position: fixed;
-      bottom: 6rem;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      background: rgba(0,0,0,0.75);
-      color: white;
-      padding: 0.6rem 1.2rem;
-      border-radius: 20px;
+    .ar-mode-card.recommended {
+      border-color: var(--accent);
+      background: rgba(232, 255, 71, 0.05);
+    }
+    .ar-mode-card h3 { font-size: 1.125rem; }
+    .ar-mode-card p {
+      color: var(--text-muted);
       font-size: 0.8125rem;
-      backdrop-filter: blur(10px);
-      white-space: nowrap;
-      transition: opacity 0.3s;
+      margin: 0;
     }
-
-    /* No posters state */
-    #noPosters {
-      position: fixed;
-      inset: 0;
-      background: #0a0a0a;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 998;
-      color: #f0f0f0;
-      text-align: center;
-      padding: 2rem;
-    }
-    #noPosters h2 { margin-bottom: 0.5rem; }
-    #noPosters p { color: #888; margin-bottom: 1.5rem; }
-    #noPosters a {
-      background: #e8ff47;
+    .badge {
+      background: var(--accent);
       color: #0a0a0a;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-
-    /* Not supported state */
-    #notSupported {
-      position: fixed;
-      inset: 0;
-      background: #0a0a0a;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 998;
-      color: #f0f0f0;
-      text-align: center;
-      padding: 2rem;
+    .badge-gray {
+      background: var(--border);
+      color: var(--text-muted);
     }
-    #notSupported h2 { margin-bottom: 0.5rem; }
-    #notSupported p { color: #888; margin-bottom: 1rem; max-width: 400px; }
-    #notSupported a {
-      background: #e8ff47;
-      color: #0a0a0a;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
-      margin-top: 0.5rem;
+    .ar-mode-card.disabled {
+      opacity: 0.4;
+      pointer-events: none;
     }
-
-    canvas { display: block; width: 100%; height: 100%; }
+    .loading-check {
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Loading -->
-  <div id="loading">
-    <div class="spinner"></div>
-    <h2 style="margin-top:1.5rem">Cargando AR</h2>
-    <p>Preparando la experiencia de realidad aumentada...</p>
-  </div>
+  <nav class="nav">
+    <a href="index.html" class="nav-brand">AR GALLERY</a>
+    <div class="nav-links">
+      <a href="index.html">Inicio</a>
+      <a href="admin.html">Admin</a>
+      <a href="ar.html" class="active">Ver AR</a>
+    </div>
+  </nav>
 
-  <!-- No posters fallback -->
-  <div id="noPosters">
-    <h2>No hay posters</h2>
-    <p>Primero sube algunos posters desde el panel de admin.</p>
-    <a href="admin.html">Ir al Admin</a>
-  </div>
+  <section class="ar-chooser">
+    <h1>Experiencia AR</h1>
+    <p>Elige cómo ver la exposición en realidad aumentada</p>
+    <div id="loadingCheck" class="loading-check">Verificando compatibilidad...</div>
 
-  <!-- WebXR not supported -->
-  <div id="notSupported">
-    <h2>AR no soportado</h2>
-    <p>Tu navegador no soporta WebXR AR. Usa Chrome en Android o Safari en iOS (con LiDAR para mejor resultado).</p>
-    <a href="index.html">Volver al inicio</a>
-  </div>
+    <div class="ar-modes">
+      <!-- WebXR mode -->
+      <a href="ar-webxr.html" class="ar-mode-card disabled" id="webxrCard">
+        <span class="badge">Recomendado</span>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 3H3v18h18V3z"/><path d="M12 8v8M8 12h8"/>
+        </svg>
+        <h3>Superficies (WebXR)</h3>
+        <p>Detecta paredes y pisos reales. Toca donde quieras colocar la galería. Requiere Chrome Android o Safari iOS.</p>
+      </a>
 
-  <!-- UI Overlay (shown during AR) -->
-  <a href="index.html" id="backBtn" style="display:none">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    Salir
-  </a>
-  <div id="reticle-indicator"></div>
-  <div id="infoBadge" style="display:none">Toca la pantalla para colocar la galería</div>
-  <button id="placeBtn">Colocar Galería</button>
+      <!-- Marker mode -->
+      <a href="ar-marker.html" class="ar-mode-card" id="markerCard">
+        <span class="badge badge-gray">Compatible</span>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10"/>
+        </svg>
+        <h3>Marcador impreso</h3>
+        <p>Imprime el marcador y apunta la cámara. Funciona en cualquier navegador con cámara.</p>
+      </a>
+    </div>
+  </section>
 
-  <script type="importmap">
-    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
-  </script>
+  <script>
+    (async () => {
+      const webxrCard = document.getElementById('webxrCard');
+      const loadingCheck = document.getElementById('loadingCheck');
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { getPosters } from './js/storage.js';
-
-    const loading = document.getElementById('loading');
-    const noPostersEl = document.getElementById('noPosters');
-    const notSupported = document.getElementById('notSupported');
-    const backBtn = document.getElementById('backBtn');
-    const infoBadge = document.getElementById('infoBadge');
-    const placeBtn = document.getElementById('placeBtn');
-    const reticleIndicator = document.getElementById('reticle-indicator');
-
-    let posters = [];
-    let galleryPlaced = false;
-
-    async function init() {
-      // Load posters from Supabase
+      let webxrSupported = false;
       try {
-        posters = await getPosters();
+        if (navigator.xr) {
+          webxrSupported = await navigator.xr.isSessionSupported('immersive-ar');
+        }
       } catch (e) {
-        console.error('Error loading posters:', e);
+        console.log('WebXR check failed:', e);
       }
 
-      if (posters.length === 0) {
-        loading.style.display = 'none';
-        noPostersEl.style.display = 'flex';
-        return;
+      if (webxrSupported) {
+        webxrCard.classList.remove('disabled');
+        webxrCard.classList.add('recommended');
+        loadingCheck.textContent = 'Tu dispositivo soporta ambos modos';
+      } else {
+        loadingCheck.textContent = 'WebXR no disponible — usa el modo marcador';
       }
-
-      // Check WebXR support
-      if (!navigator.xr) {
-        loading.style.display = 'none';
-        notSupported.style.display = 'flex';
-        return;
-      }
-
-      const supported = await navigator.xr.isSessionSupported('immersive-ar');
-      if (!supported) {
-        loading.style.display = 'none';
-        notSupported.style.display = 'flex';
-        return;
-      }
-
-      // Preload poster images
-      const textures = await loadTextures(posters);
-
-      // Start AR
-      startAR(textures);
-    }
-
-    function loadTextures(posters) {
-      const loader = new THREE.TextureLoader();
-      loader.crossOrigin = 'anonymous';
-      return Promise.all(
-        posters.map(p => new Promise((resolve) => {
-          loader.load(p.image, (tex) => {
-            tex.colorSpace = THREE.SRGBColorSpace;
-            resolve({ texture: tex, title: p.title, width: tex.image.width, height: tex.image.height });
-          }, undefined, () => resolve(null));
-        }))
-      ).then(results => results.filter(Boolean));
-    }
-
-    async function startAR(textures) {
-      // Setup Three.js
-      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-      renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      document.body.appendChild(renderer.domElement);
-
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-      // Ambient light
-      scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-
-      // Gallery group (will be placed on hit-test)
-      const gallery = createGallery(textures);
-      gallery.visible = false;
-      scene.add(gallery);
-
-      // Reticle (visual indicator of where gallery will be placed)
-      const reticle = createReticle();
-      reticle.visible = false;
-      scene.add(reticle);
-
-      // Request AR session with hit-test
-      let hitTestSource = null;
-      let hitTestSourceRequested = false;
-      let lastHitPose = null;
-
-      const session = await navigator.xr.requestSession('immersive-ar', {
-        requiredFeatures: ['hit-test'],
-        optionalFeatures: ['dom-overlay', 'plane-detection'],
-        domOverlay: { root: document.body }
-      });
-
-      renderer.xr.setReferenceSpaceType('local');
-      await renderer.xr.setSession(session);
-
-      const referenceSpace = await session.requestReferenceSpace('local');
-      const viewerSpace = await session.requestReferenceSpace('viewer');
-
-      // Show UI
-      loading.style.display = 'none';
-      backBtn.style.display = 'flex';
-      infoBadge.style.display = 'block';
-      placeBtn.style.display = 'block';
-      reticleIndicator.style.display = 'block';
-
-      // Place gallery on button tap
-      placeBtn.addEventListener('click', () => {
-        if (lastHitPose && !galleryPlaced) {
-          const pos = lastHitPose.transform.position;
-          gallery.position.set(pos.x, pos.y, pos.z);
-
-          // Orient gallery to face the camera
-          const cameraPos = new THREE.Vector3();
-          camera.getWorldPosition(cameraPos);
-          gallery.lookAt(cameraPos.x, gallery.position.y, cameraPos.z);
-
-          gallery.visible = true;
-          galleryPlaced = true;
-          reticle.visible = false;
-          reticleIndicator.style.display = 'none';
-          placeBtn.textContent = 'Reubicar';
-          infoBadge.textContent = `Exposición: ${posters.length} poster${posters.length !== 1 ? 's' : ''}`;
-        } else if (galleryPlaced) {
-          // Allow repositioning
-          galleryPlaced = false;
-          gallery.visible = false;
-          reticle.visible = true;
-          reticleIndicator.style.display = 'block';
-          placeBtn.textContent = 'Colocar Galería';
-          infoBadge.textContent = 'Toca para colocar la galería';
-        }
-      });
-
-      // Also allow tap on screen to place
-      session.addEventListener('select', () => {
-        if (lastHitPose && !galleryPlaced) {
-          placeBtn.click();
-        }
-      });
-
-      // Render loop
-      renderer.setAnimationLoop((timestamp, frame) => {
-        if (frame) {
-          // Hit test
-          if (!hitTestSourceRequested) {
-            session.requestHitTestSource({ space: viewerSpace }).then(source => {
-              hitTestSource = source;
-            });
-            hitTestSourceRequested = true;
-          }
-
-          if (hitTestSource && !galleryPlaced) {
-            const hitTestResults = frame.getHitTestResults(hitTestSource);
-            if (hitTestResults.length > 0) {
-              const hit = hitTestResults[0];
-              lastHitPose = hit.getPose(referenceSpace);
-              if (lastHitPose) {
-                reticle.visible = true;
-                reticle.position.set(
-                  lastHitPose.transform.position.x,
-                  lastHitPose.transform.position.y,
-                  lastHitPose.transform.position.z
-                );
-                reticle.updateMatrixWorld(true);
-              }
-            }
-          }
-        }
-        renderer.render(scene, camera);
-      });
-
-      // Cleanup on session end
-      session.addEventListener('end', () => {
-        window.location.href = 'index.html';
-      });
-
-      // Handle resize
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-    }
-
-    function createGallery(textures) {
-      const group = new THREE.Group();
-
-      const posterWidth = 0.3;   // 30cm wide
-      const gap = 0.04;          // 4cm gap
-
-      // Calculate each poster's height based on aspect ratio
-      const posterData = textures.map(t => {
-        const aspect = t.height / t.width;
-        return { ...t, displayHeight: posterWidth * aspect };
-      });
-      const maxHeight = Math.max(...posterData.map(p => p.displayHeight));
-
-      const totalWidth = posterData.length * posterWidth + (posterData.length - 1) * gap;
-      const startX = -totalWidth / 2 + posterWidth / 2;
-
-      // Wall backdrop
-      const wallGeo = new THREE.PlaneGeometry(totalWidth + 0.12, maxHeight + 0.16);
-      const wallMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, side: THREE.DoubleSide });
-      const wall = new THREE.Mesh(wallGeo, wallMat);
-      wall.position.set(0, maxHeight / 2 + 0.02, -0.005);
-      group.add(wall);
-
-      // Posters
-      posterData.forEach((poster, i) => {
-        const x = startX + i * (posterWidth + gap);
-        const y = maxHeight / 2 + 0.02;
-
-        // White frame
-        const frameGeo = new THREE.PlaneGeometry(posterWidth + 0.02, poster.displayHeight + 0.02);
-        const frameMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const frame = new THREE.Mesh(frameGeo, frameMat);
-        frame.position.set(x, y, -0.001);
-        group.add(frame);
-
-        // Poster image
-        const geo = new THREE.PlaneGeometry(posterWidth, poster.displayHeight);
-        const mat = new THREE.MeshBasicMaterial({ map: poster.texture });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(x, y, 0);
-        group.add(mesh);
-      });
-
-      return group;
-    }
-
-    function createReticle() {
-      const ring = new THREE.RingGeometry(0.05, 0.06, 32);
-      ring.rotateX(-Math.PI / 2);
-      const mat = new THREE.MeshBasicMaterial({ color: 0xe8ff47, side: THREE.DoubleSide });
-      const mesh = new THREE.Mesh(ring, mat);
-
-      // Center dot
-      const dot = new THREE.CircleGeometry(0.01, 16);
-      dot.rotateX(-Math.PI / 2);
-      const dotMesh = new THREE.Mesh(dot, mat);
-      mesh.add(dotMesh);
-
-      return mesh;
-    }
-
-    init();
+    })();
   </script>
 
 </body>
