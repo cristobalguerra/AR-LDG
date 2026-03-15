@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AR Gyro — AR Gallery</title>
+  <style>
+    * { margin: 0; padding: 0; }
+    body { overflow: hidden; font-family: sans-serif; background: #000; }
+
+    #videoFeed {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover; z-index: 0;
+    }
+
+    #threeCanvas {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+    }
+
+    /* Loading */
+    #loading {
+      position: fixed; inset: 0; background: #0a0a0a;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 999; color: #f0f0f0; transition: opacity 0.5s;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+    #loading h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    #loading p { color: #888; font-size: 0.875rem; margin-bottom: 1.5rem; text-align: center; padding: 0 2rem; }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid #333;
+      border-top-color: #e8ff47; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* UI */
+    #backBtn {
+      position: fixed; top: env(safe-area-inset-top, 0.5rem); left: 0.75rem;
+      z-index: 100; background: rgba(0,0,0,0.6); color: white; border: none;
+      padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.8125rem;
+      backdrop-filter: blur(10px); text-decoration: none;
+      display: none; align-items: center; gap: 0.3rem; margin-top: 0.5rem;
+    }
+
+    #placeBtn {
+      position: fixed; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+      z-index: 100; background: #e8ff47; color: #0a0a0a; border: none;
+      padding: 0.875rem 2rem; border-radius: 30px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; display: none; font-family: sans-serif;
+      box-shadow: 0 4px 20px rgba(232, 255, 71, 0.3);
+    }
+    #placeBtn:active { transform: translateX(-50%) scale(0.95); }
+
+    #infoBadge {
+      position: fixed; bottom: 6.5rem; left: 50%; transform: translateX(-50%);
+      z-index: 100; background: rgba(0,0,0,0.65); color: white;
+      padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.75rem;
+      backdrop-filter: blur(10px); white-space: nowrap; display: none;
+    }
+
+    /* Crosshair */
+    #crosshair {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      z-index: 50; pointer-events: none; display: none;
+    }
+    #crosshair::before, #crosshair::after {
+      content: ''; position: absolute; background: rgba(232,255,71,0.7);
+    }
+    #crosshair::before { width: 20px; height: 2px; top: -1px; left: -10px; }
+    #crosshair::after { width: 2px; height: 20px; left: -1px; top: -10px; }
+
+    /* No posters */
+    #noPosters {
+      position: fixed; inset: 0; background: #0a0a0a;
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 998; color: #f0f0f0; text-align: center; padding: 2rem;
+    }
+    #noPosters h2 { margin-bottom: 0.5rem; }
+    #noPosters p { color: #888; margin-bottom: 1.5rem; }
+    #noPosters a {
+      background: #e8ff47; color: #0a0a0a; padding: 0.75rem 1.5rem;
+      border-radius: 8px; text-decoration: none; font-weight: 600;
+    }
+
+    /* Permission request */
+    #permissionRequest {
+      position: fixed; inset: 0; background: #0a0a0a;
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 997; color: #f0f0f0; text-align: center; padding: 2rem;
+    }
+    #permissionRequest h2 { margin-bottom: 0.5rem; }
+    #permissionRequest p { color: #888; margin-bottom: 1.5rem; max-width: 350px; font-size: 0.9375rem; }
+    #permissionRequest button {
+      background: #e8ff47; color: #0a0a0a; border: none;
+      padding: 0.875rem 2rem; border-radius: 12px; font-size: 1rem;
+      font-weight: 700; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <h2 style="margin-top:1.5rem">Preparando AR</h2>
+    <p>Cargando posters y cámara...</p>
+  </div>
+
+  <div id="noPosters">
+    <h2>No hay posters</h2>
+    <p>Primero sube algunos posters desde el panel de admin.</p>
+    <a href="admin.html">Ir al Admin</a>
+  </div>
+
+  <div id="permissionRequest">
+    <h2>Permisos necesarios</h2>
+    <p>Necesitamos acceso a tu cámara y sensores de movimiento para la experiencia AR.</p>
+    <button id="grantPermission">Activar AR</button>
+  </div>
+
+  <video id="videoFeed" autoplay playsinline></video>
+  <canvas id="threeCanvas"></canvas>
+
+  <a href="ar.html" id="backBtn">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Volver
+  </a>
+  <div id="crosshair"></div>
+  <div id="infoBadge">Mueve el celular y toca para colocar</div>
+  <button id="placeBtn">Colocar Galería</button>
+
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { getPosters } from './js/storage.js';
+
+    const loading = document.getElementById('loading');
+    const noPostersEl = document.getElementById('noPosters');
+    const permissionRequest = document.getElementById('permissionRequest');
+    const grantPermissionBtn = document.getElementById('grantPermission');
+    const videoFeed = document.getElementById('videoFeed');
+    const canvas = document.getElementById('threeCanvas');
+    const backBtn = document.getElementById('backBtn');
+    const placeBtn = document.getElementById('placeBtn');
+    const infoBadge = document.getElementById('infoBadge');
+    const crosshair = document.getElementById('crosshair');
+
+    let posters = [];
+    let gallery = null;
+    let galleryPlaced = false;
+    let orientationData = { alpha: 0, beta: 0, gamma: 0 };
+    let initialOrientation = null;
+    let placedOrientation = null;
+
+    async function init() {
+      try {
+        posters = await getPosters();
+      } catch (e) {
+        console.error('Error loading posters:', e);
+      }
+
+      if (posters.length === 0) {
+        loading.style.display = 'none';
+        noPostersEl.style.display = 'flex';
+        return;
+      }
+
+      // On iOS 13+ need to request permission for DeviceOrientation
+      const needsPermission = typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function';
+
+      if (needsPermission) {
+        loading.style.display = 'none';
+        permissionRequest.style.display = 'flex';
+        grantPermissionBtn.addEventListener('click', async () => {
+          try {
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission === 'granted') {
+              permissionRequest.style.display = 'none';
+              loading.style.display = 'flex';
+              await startExperience();
+            }
+          } catch (e) {
+            alert('No se pudo obtener permiso para los sensores.');
+          }
+        });
+      } else {
+        await startExperience();
+      }
+    }
+
+    async function startExperience() {
+      // Start camera
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+        });
+        videoFeed.srcObject = stream;
+      } catch (e) {
+        alert('No se pudo acceder a la cámara.');
+        return;
+      }
+
+      // Setup Three.js
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 100);
+      camera.position.set(0, 0, 0);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+
+      // Load textures and create gallery
+      const textures = await loadTextures(posters);
+      gallery = createGallery(textures);
+      gallery.visible = false;
+      // Place gallery 2 meters in front
+      gallery.position.set(0, 0, -2);
+      scene.add(gallery);
+
+      // Listen to device orientation
+      window.addEventListener('deviceorientation', (e) => {
+        if (e.alpha === null) return;
+        orientationData.alpha = e.alpha;
+        orientationData.beta = e.beta;
+        orientationData.gamma = e.gamma;
+
+        if (!initialOrientation) {
+          initialOrientation = { ...orientationData };
+        }
+      });
+
+      // Show UI
+      loading.classList.add('hidden');
+      backBtn.style.display = 'flex';
+      placeBtn.style.display = 'block';
+      infoBadge.style.display = 'block';
+      crosshair.style.display = 'block';
+
+      // Place/reposition
+      placeBtn.addEventListener('click', () => {
+        if (!galleryPlaced) {
+          // Place gallery at current orientation
+          placedOrientation = { ...orientationData };
+          gallery.visible = true;
+          galleryPlaced = true;
+          crosshair.style.display = 'none';
+          placeBtn.textContent = 'Reubicar';
+          infoBadge.textContent = `${posters.length} poster${posters.length !== 1 ? 's' : ''} en exposición`;
+        } else {
+          // Reset
+          galleryPlaced = false;
+          gallery.visible = false;
+          crosshair.style.display = 'block';
+          placeBtn.textContent = 'Colocar Galería';
+          infoBadge.textContent = 'Mueve el celular y toca para colocar';
+        }
+      });
+
+      // Render loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        if (initialOrientation) {
+          // Convert orientation to camera rotation
+          const alphaRad = THREE.MathUtils.degToRad(orientationData.alpha || 0);
+          const betaRad = THREE.MathUtils.degToRad(orientationData.beta || 0);
+          const gammaRad = THREE.MathUtils.degToRad(orientationData.gamma || 0);
+
+          // Apply device orientation to camera using Euler angles
+          // Phone in portrait mode, looking through rear camera
+          const euler = new THREE.Euler();
+          euler.set(betaRad - Math.PI / 2, alphaRad, -gammaRad, 'YXZ');
+          camera.quaternion.setFromEuler(euler);
+
+          // If gallery placed, keep it at the placed orientation
+          if (galleryPlaced && placedOrientation) {
+            const placedAlpha = THREE.MathUtils.degToRad(placedOrientation.alpha || 0);
+            const placedBeta = THREE.MathUtils.degToRad(placedOrientation.beta || 0);
+            const placedGamma = THREE.MathUtils.degToRad(placedOrientation.gamma || 0);
+
+            const placedEuler = new THREE.Euler();
+            placedEuler.set(placedBeta - Math.PI / 2, placedAlpha, -placedGamma, 'YXZ');
+
+            const placedQuat = new THREE.Quaternion().setFromEuler(placedEuler);
+            const forward = new THREE.Vector3(0, 0, -2).applyQuaternion(placedQuat);
+            gallery.position.copy(forward);
+            gallery.lookAt(0, gallery.position.y, 0);
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      // Resize
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    function loadTextures(posters) {
+      const loader = new THREE.TextureLoader();
+      loader.crossOrigin = 'anonymous';
+      return Promise.all(
+        posters.map(p => new Promise((resolve) => {
+          loader.load(p.image, (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            resolve({ texture: tex, title: p.title, width: tex.image.width, height: tex.image.height });
+          }, undefined, () => resolve(null));
+        }))
+      ).then(results => results.filter(Boolean));
+    }
+
+    function createGallery(textures) {
+      const group = new THREE.Group();
+
+      const posterWidth = 0.3;
+      const gap = 0.04;
+
+      const posterData = textures.map(t => {
+        const aspect = t.height / t.width;
+        return { ...t, displayHeight: posterWidth * aspect };
+      });
+      const maxHeight = Math.max(...posterData.map(p => p.displayHeight));
+
+      const totalWidth = posterData.length * posterWidth + (posterData.length - 1) * gap;
+      const startX = -totalWidth / 2 + posterWidth / 2;
+
+      // Semi-transparent wall backdrop
+      const wallGeo = new THREE.PlaneGeometry(totalWidth + 0.12, maxHeight + 0.16);
+      const wallMat = new THREE.MeshBasicMaterial({
+        color: 0x1a1a1a, side: THREE.DoubleSide, transparent: true, opacity: 0.85
+      });
+      const wall = new THREE.Mesh(wallGeo, wallMat);
+      wall.position.set(0, 0, -0.005);
+      group.add(wall);
+
+      posterData.forEach((poster, i) => {
+        const x = startX + i * (posterWidth + gap);
+
+        // White frame
+        const frameGeo = new THREE.PlaneGeometry(posterWidth + 0.02, poster.displayHeight + 0.02);
+        const frameMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const frame = new THREE.Mesh(frameGeo, frameMat);
+        frame.position.set(x, 0, -0.001);
+        group.add(frame);
+
+        // Poster
+        const geo = new THREE.PlaneGeometry(posterWidth, poster.displayHeight);
+        const mat = new THREE.MeshBasicMaterial({ map: poster.texture });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, 0, 0);
+        group.add(mesh);
+      });
+
+      return group;
+    }
+
+    init();
+  </script>
+
+</body>
+</html>

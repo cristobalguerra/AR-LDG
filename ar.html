@@ -109,9 +109,19 @@
         <p>Detecta paredes y pisos reales. Toca donde quieras colocar la galería. Requiere Chrome Android o Safari iOS.</p>
       </a>
 
+      <!-- Gyro mode (iOS friendly) -->
+      <a href="ar-gyro.html" class="ar-mode-card recommended" id="gyroCard">
+        <span class="badge">iPhone / iPad</span>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/>
+        </svg>
+        <h3>Cámara libre</h3>
+        <p>Usa la cámara y el giroscopio. Toca la pantalla para colocar la galería donde quieras. Sin marcador.</p>
+      </a>
+
       <!-- Marker mode -->
       <a href="ar-marker.html" class="ar-mode-card" id="markerCard">
-        <span class="badge badge-gray">Compatible</span>
+        <span class="badge badge-gray">Con marcador</span>
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10"/>
         </svg>
@@ -140,7 +150,7 @@
         webxrCard.classList.add('recommended');
         loadingCheck.textContent = 'Tu dispositivo soporta ambos modos';
       } else {
-        loadingCheck.textContent = 'WebXR no disponible — usa el modo marcador';
+        loadingCheck.textContent = 'Usa "Cámara libre" en iPhone o "Marcador" en cualquier dispositivo';
       }
     })();
   </script>
