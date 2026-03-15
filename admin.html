@@ -117,20 +117,20 @@
     });
 
     async function handleFiles(files) {
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) continue;
-        const dataURL = await readFileAsDataURL(file);
-        await addPoster(dataURL, file.name.replace(/\.[^.]+$/, ''));
+      uploadZone.style.opacity = '0.5';
+      uploadZone.querySelector('h3').textContent = 'Subiendo...';
+      try {
+        for (const file of files) {
+          if (!file.type.startsWith('image/')) continue;
+          await addPoster(file, file.name.replace(/\.[^.]+$/, ''));
+        }
+        await renderPosters();
+      } catch (err) {
+        console.error('Upload error:', err);
+        alert('Error al subir: ' + err.message);
       }
-      await renderPosters();
-    }
-
-    function readFileAsDataURL(file) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(file);
-      });
+      uploadZone.style.opacity = '1';
+      uploadZone.querySelector('h3').textContent = 'Arrastra imágenes aquí';
     }
 
     async function renderPosters() {
