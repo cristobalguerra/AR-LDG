@@ -1,238 +1,223 @@
-# PRD — Plataforma de Diseño ASCII / Dithering Editable
+# PRD — Generador de Composiciones Visuales (módulo de AR-LDG)
 
-**Nombre tentativo:** Ditherlab
+**Proyecto:** AR-LDG
+**Módulo:** Composer (nombre tentativo)
 **Autor:** Equipo AR-LDG
-**Versión:** 0.1 (Draft)
+**Versión:** 0.2 (Draft)
 **Fecha:** 2026-05-20
 **Estado:** En revisión
 
 ---
 
-## 1. Resumen ejecutivo
+## 1. Resumen
 
-Ditherlab es una plataforma web que permite a cualquier persona generar arte tipo ASCII / dithering a partir de una imagen, video o webcam, reemplazando los píxeles por **formas vectoriales personalizadas** (SVG, emoji, texto ASCII, etc.). El usuario controla la forma, el color y el tamaño de los píxeles de salida según su tono (highlights, midtones, shadows) y obtiene un resultado exportable como imagen, video o componente embebible.
+Composer es un **módulo nuevo dentro del sitio AR-LDG** (no una plataforma aparte) que permite a estudiantes de diseño gráfico generar composiciones visuales jugando con dithering y "píxeles" custom: shapes SVG, emoji, letras ASCII o colores. Es una **herramienta de juego y exploración en clase**, sin login, sin pagos, sin cuentas — abrís la URL y diseñás.
 
-La inspiración viene del flujo manual descrito por Anton Burmistrov (Part 119): crear shapes en SVG → aplicar un filtro de dithering que mapea tonos a shapes → iterar visualmente. Ditherlab convierte ese flujo manual en una herramienta visual con presets, capas y exportación.
+El módulo se suma a las pantallas existentes (`index`, `admin`, `ar`, `marker`) como una nueva entrada del nav: **"Componer"**. Las piezas generadas pueden además **subirse como posters al admin** y verse en AR sobre el marcador, cerrando el loop con lo que ya hace AR-LDG.
 
----
-
-## 2. Problema
-
-Hoy, generar este tipo de gráfica requiere:
-- Conocer suficientemente Photoshop / After Effects / código.
-- Pedir a una IA generativa que produzca HTML/CSS/JS y debuggearlo a mano.
-- Iterar manualmente sobre cada combinación tono ↔ forma.
-
-Esto deja fuera a diseñadores junior, creadores de contenido, marketers y comunidades creativas que ven el resultado en redes pero no pueden replicarlo. Tampoco existe una herramienta que permita **guardar presets, compartir estilos y editar en vivo** con webcam o video.
+Inspiración del flujo: post de Anton Burmistrov (Part 119) sobre dithering manual SVG → HTML → filtro tonal. La idea es convertir eso en algo que un estudiante pueda usar en 30 segundos sin tutorial.
 
 ---
 
-## 3. Objetivos y métricas de éxito
+## 2. Por qué hacerlo
 
-### Objetivos producto
-1. Que un usuario sin código pueda producir una pieza tipo "ASCII art" custom en **menos de 5 minutos** desde la primera visita.
-2. Que el resultado sea exportable en al menos 3 formatos (PNG, SVG, MP4/GIF).
-3. Que la plataforma permita compartir presets entre usuarios (URL pública).
-
-### KPIs (primeros 90 días post-launch)
-| Métrica | Target |
-|---|---|
-| Activación (usuario que exporta al menos 1 pieza) | ≥ 35% de visitantes únicos |
-| Tiempo a primer export | < 5 min mediana |
-| Presets públicos creados | ≥ 200 |
-| Retención semana 4 | ≥ 15% |
-| NPS | ≥ 40 |
-
-### No-objetivos (v1)
-- No es un editor de imágenes completo (no compite con Photoshop).
-- No soporta animación frame-by-frame en v1 (solo render de video como secuencia).
-- No incluye marketplace pago de presets en v1.
+- En clase de diseño gráfico, los/las estudiantes ven estética dithering / ASCII en redes pero replicarla requiere Photoshop o código.
+- AR-LDG ya tiene un caso de uso educativo (montar exposiciones AR con posters). Composer agrega el paso anterior: **crear el poster en el browser** sin software pago.
+- El profesor puede dar una consigna ("componé algo con tres shapes y dos colores") y todo el curso trabaja desde cualquier laptop o celular.
 
 ---
 
-## 4. Usuarios objetivo
+## 3. Objetivos
 
-| Persona | Necesidad | Frecuencia esperada |
+### Producto
+1. Que un estudiante sin experiencia previa genere una composición exportable en **< 3 minutos**.
+2. Que la composición exportada **se pueda subir directo al admin** de AR-LDG y verse en AR.
+3. Que **no haya cuentas, login ni pagos** — todo client-side y compartible por URL.
+
+### Métricas de uso (en clase piloto)
+- ≥ 80% de estudiantes del curso piloto logran exportar al menos 1 pieza en la primera clase de 40 min.
+- ≥ 50% suben su pieza al módulo AR y la ven sobre el marcador en la misma sesión.
+- Feedback cualitativo del/la docente: "fue jugable" / "lo usaría de nuevo".
+
+### No-objetivos
+- No hay cuentas ni perfiles.
+- No hay monetización, ads, marketplace ni planes pagos.
+- No es una herramienta profesional de producción — la meta es **explorar y jugar**, no reemplazar Photoshop.
+- No requiere backend nuevo: todo corre en el browser; persistencia mínima vía URL con estado serializado.
+
+---
+
+## 4. Usuarios
+
+| Rol | Necesidad | Contexto |
 |---|---|---|
-| **Diseñador/a visual junior–mid** | Producir gráfica con identidad propia sin código | Semanal |
-| **Creador/a de contenido (TikTok/IG)** | Generar videos cortos con estética dithering | 1–3 por semana |
-| **Director/a de arte de agencia** | Explorar estilos para campañas, exportar para entregables | Por proyecto |
-| **Educador/a o estudiante de arte digital** | Aprender dithering / pixel art interactuando | Mensual |
-| **Dev creativo** | Embeber el render en su propia web vía componente o API | Por proyecto |
+| **Estudiante de diseño** | Generar piezas rápido para una consigna de clase | Laptop o celular, 40–90 min de clase |
+| **Docente** | Dar una consigna replicable, mostrar resultados en vivo, proyectar | Computadora del aula |
+| **Visitante de la galería AR** | Ver las piezas resultantes como exposición | Celular escaneando el marcador |
 
 ---
 
-## 5. Flujos de usuario clave
+## 5. Integración con el sitio actual
 
-### 5.1 Flujo principal — "De imagen a pieza" (MVP)
-1. Usuario entra a la home → ve un demo en vivo con webcam o imagen default.
-2. Sube imagen / activa webcam / pega URL / elige stock.
-3. Elige un **preset** (3–6 al inicio) o arranca de cero.
-4. En el panel lateral edita:
-   - Mapeo tonal: shape/color/tamaño para highlights, midtones, shadows.
-   - Resolución de grilla (densidad de píxeles).
-   - Espaciado y rotación.
-   - Paleta de colores (fondo + acentos).
-5. Ve el preview actualizándose en tiempo real (< 100 ms por frame en canvas).
-6. Exporta: PNG / SVG / MP4 / GIF / link compartible.
+### Estructura actual del sitio
+```
+index.html       Landing (Hero, Cómo funciona)
+admin.html       Subida de posters
+ar.html          Visualización AR (entry)
+ar-gyro.html     Variante AR (giroscopio)
+ar-marker.html   Variante AR (marker tracking)
+ar-webxr.html    Variante AR (WebXR)
+marker.html      Marcador imprimible
+```
 
-### 5.2 Flujo secundario — "Custom shapes"
-1. Usuario sube un SVG propio o lo dibuja en un mini-editor.
-2. Lo asigna a uno de los tres tramos tonales (o a un valor específico).
-3. Guarda el preset (privado o público).
+### Cambios al sitio
+- **Nuevo archivo:** `composer.html` con el editor.
+- **Nuevo link en el nav** (todas las páginas): `Componer` entre `Admin` y `Ver AR`.
+- **Botón en `composer.html`:** "Enviar a AR" → carga la pieza exportada al mismo storage que usa `admin.html` (localStorage del navegador, igual que el resto del sitio).
+- **Sección nueva en `index.html`:** un cuarto step antes del flujo actual ("0. Componé tus piezas en el navegador") o sumarlo como camino alternativo en el hero.
+- **Sin cambios** en `marker.html`, `ar-*.html`: la pieza generada es solo otra imagen del set de posters.
 
-### 5.3 Flujo secundario — "Webcam live"
-1. Usuario activa webcam → ve su cara dithered en vivo.
-2. Puede grabar 5–15 s y exportar como MP4/GIF.
-3. Útil para contenido social y para demos en presentaciones.
-
-### 5.4 Flujo secundario — "Compartir preset"
-1. Usuario hace público un preset → recibe URL `ditherlab.app/p/{slug}`.
-2. Otro usuario abre la URL → ve la pieza renderizada + botón "Editar copia".
+### Stack — alinearse con lo que ya hay
+- HTML/CSS/JS vanilla, sin frameworks (consistente con `index.html` actual).
+- Estilos en `css/style.css` existente (extender, no romper).
+- Scripts en `js/` (crear `js/composer.js`).
+- Sin backend, sin Supabase, sin auth — persistencia en `localStorage` igual que `admin.html`.
 
 ---
 
 ## 6. Funcionalidades
 
-### 6.1 MVP (v1.0)
-- [ ] Entrada: subir imagen (JPG/PNG/WebP), drag&drop, webcam, URL pública.
-- [ ] Motor de dithering en canvas/WebGL con mapeo tonal a 3 bandas (highlights / mids / shadows).
-- [ ] Librería de shapes built-in (≥ 12: círculo, cuadrado, triángulo, rombo, líneas, emoji básicos).
-- [ ] Subida de SVG custom como shape.
-- [ ] Controles: densidad de grilla, espaciado, rotación, paleta de hasta 5 colores, color de fondo.
-- [ ] Texto ASCII como shape (cualquier glifo / palabra como "píxel").
-- [ ] Preview en vivo (< 100 ms para imágenes ≤ 2 MP).
-- [ ] Export PNG y SVG.
-- [ ] Presets default (mínimo 6 estilos curados).
-- [ ] Guardar presets propios (auth simple — magic link).
-- [ ] Compartir preset vía URL pública.
+### 6.1 MVP — lo mínimo para llevar a clase
+- [ ] Entrada de imagen: subir archivo (JPG/PNG/WebP) o usar webcam.
+- [ ] Motor de dithering en `<canvas>` 2D con 3 bandas tonales (highlights / mids / shadows).
+- [ ] Para cada banda, elegir:
+  - Shape (galería built-in: círculo, cuadrado, triángulo, rombo, línea, asterisco, plus, dot — 8 shapes).
+  - Color (color picker simple).
+  - O un carácter / emoji (input de texto, 1 glifo).
+- [ ] Slider de **densidad de grilla** (10×10 hasta 120×120).
+- [ ] Slider de **espaciado** entre celdas.
+- [ ] Color de fondo.
+- [ ] Preview en vivo (< 100 ms por cambio sobre imagen ≤ 2 MP).
+- [ ] **Export PNG** (download directo).
+- [ ] **"Enviar a AR"** → guarda la pieza en `localStorage` para que `admin.html`/`ar.html` la lean.
+- [ ] **Compartir por URL** → estado completo serializado en query string (`composer.html?cfg=...`) para que el docente proyecte la misma config en clase.
 
-### 6.2 v1.1 (post-launch, ~6 semanas después)
-- [ ] Webcam en vivo con grabación a MP4/GIF (5–30 s).
-- [ ] Procesamiento de video subido (export como secuencia o MP4).
-- [ ] Más bandas tonales (5–7 en vez de 3 fijas).
-- [ ] Curva tonal editable (no solo bandas).
-- [ ] Galería pública de presets con búsqueda y likes.
+### 6.2 Nice-to-have (si sobra tiempo en el sprint)
+- [ ] Subir SVG propio como shape custom (sanitizado).
+- [ ] 5 presets de partida para que la primera vez no esté en blanco.
+- [ ] Modo "consigna del día" — el docente arma una URL con config base y la pega en el aula virtual.
+- [ ] Export SVG además de PNG.
 
-### 6.3 Backlog (v2+)
-- [ ] API/SDK para embeber el render en sitios de terceros.
-- [ ] Web Component `<ditherlab-canvas src="..." preset="..."/>`.
-- [ ] Integración con cámaras de móvil (PWA con permisos nativos).
-- [ ] Marketplace de presets (gratis + pago).
-- [ ] Modo colaborativo en tiempo real.
-- [ ] Plug-in de Figma que exporta una capa con el efecto aplicado.
-- [ ] Integración con la galería AR de este proyecto (AR-LDG) para mostrar piezas dithered como posters en realidad aumentada.
-
----
-
-## 7. Requisitos técnicos
-
-### 7.1 Stack sugerido
-- **Frontend:** Vite + TypeScript + React. Canvas 2D para v1; migrar a WebGL (shaders) si el FPS no alcanza con grillas densas o webcam.
-- **Procesamiento:** Worker thread para dithering pesado; `OffscreenCanvas` donde sea soportado.
-- **Backend:** Supabase (auth magic link, storage para SVGs subidos, Postgres para presets).
-- **Hosting:** Vercel o Cloudflare Pages para el frontend; Supabase para el resto.
-- **Export de video:** `MediaRecorder` para webcam; `ffmpeg.wasm` para video subido.
-
-### 7.2 Modelo de datos (Supabase / Postgres)
-```
-users (id, email, created_at)
-shapes (id, owner_id, name, svg_blob, is_public, created_at)
-presets (
-  id, owner_id, slug, name,
-  config_json,   -- grilla, mapeo tonal, paleta, shapes refs
-  thumbnail_url,
-  is_public, fork_of, created_at, updated_at
-)
-renders (id, preset_id, source_type, source_hash, output_url, created_at)
-likes (user_id, preset_id, created_at)
-```
-
-### 7.3 Performance
-- Imagen 2 MP @ grilla 80×80 → < 100 ms por frame en laptop M1 / equivalente.
-- Webcam 720p @ grilla 60×60 → ≥ 24 FPS sostenido.
-- Bundle inicial < 250 KB gzipped (sin el motor de video).
-
-### 7.4 Privacidad y seguridad
-- Imágenes/videos subidos se procesan client-side por default; solo se suben al backend si el usuario guarda render.
-- Webcam nunca se transmite al servidor.
-- SVGs subidos se sanitizan (whitelist de tags / atributos) antes de renderizar.
-- Auth con magic link (no passwords).
-- Cumplimiento GDPR básico: borrar cuenta + datos a pedido.
-
-### 7.5 Accesibilidad
-- WCAG 2.1 AA en UI.
-- Todos los controles operables por teclado.
-- Modo "alto contraste" para el panel de edición.
-- Descripción textual generada para piezas exportadas (alt text).
+### 6.3 Fuera de scope
+- Auth, cuentas, perfiles.
+- Galería pública con likes / búsqueda.
+- Procesamiento de video.
+- API / componente embebible.
+- Marketplace / planes pagos.
 
 ---
 
-## 8. UX / Wireframes (descripción)
+## 7. Flujo principal
 
-**Layout principal (desktop):**
+1. Estudiante abre `composer.html` (puede llegar desde el nav o desde una URL compartida por el/la docente con la consigna).
+2. Si la URL trae `?cfg=...`, los controles se inicializan con esa config; si no, arranca con un preset default.
+3. Sube una imagen o activa webcam.
+4. Mueve sliders y elige shape + color por banda; ve el preview cambiar en vivo.
+5. Acciones de salida:
+   - **Descargar PNG.**
+   - **Enviar a AR** → la pieza queda lista en `admin.html` como un poster más.
+   - **Copiar link** → URL con la config para que cualquiera abra y vea el mismo render.
+6. Va a `ar.html` desde su celular, escanea el marcador, y ve su pieza colgada en la pared.
+
+---
+
+## 8. UX
+
+### Layout desktop (`composer.html`)
 ```
 +---------------------------------------------------------------+
-| Logo  Ditherlab          [ Presets ] [ Galería ] [ Login ]    |
+| AR GALLERY    Inicio · Admin · [Componer] · Ver AR             |
 +--------------------+------------------------------------------+
 |                    |                                          |
-|   PANEL DE         |                                          |
-|   EDICIÓN          |          CANVAS / PREVIEW                |
-|                    |          (drag & drop aquí)              |
-|  - Source          |                                          |
-|  - Grilla          |                                          |
-|  - Shapes/banda    |                                          |
-|  - Paleta          |                                          |
-|  - Export          |                                          |
+|  Fuente            |                                          |
+|  [Subir] [Webcam]  |          CANVAS / PREVIEW                |
 |                    |                                          |
+|  Grilla   [——●——]  |                                          |
+|  Espaciado[——●——]  |                                          |
+|                    |                                          |
+|  Highlights        |                                          |
+|   ◯ ▢ △ ◇ + ✦ · *  |                                          |
+|   color: [■]       |                                          |
+|   o glifo: [   ]   |                                          |
+|                    |                                          |
+|  Midtones  (idem)  |                                          |
+|  Shadows   (idem)  |                                          |
+|                    |                                          |
+|  Fondo: [■]        |                                          |
+|                    |                                          |
+|  [Descargar PNG]   |                                          |
+|  [Enviar a AR]     |                                          |
+|  [Copiar link]     |                                          |
 +--------------------+------------------------------------------+
 ```
 
-**Mobile:** panel colapsable como bottom-sheet; canvas full-width.
+### Mobile
+- Panel de controles colapsable como bottom sheet.
+- Canvas ocupa todo el viewport detrás.
+- Sliders y selección de shape en una sola columna scrolleable.
+
+### Estilo visual
+- Coherente con el resto del sitio (mismo nav, misma tipografía, misma paleta del `css/style.css`).
+- Sin librerías de UI nuevas.
 
 ---
 
-## 9. Riesgos y mitigaciones
+## 9. Notas técnicas
 
-| Riesgo | Impacto | Mitigación |
-|---|---|---|
-| Performance pobre en mobile mid-range | Alto | Limitar grilla por device tier; lazy load WebGL; degradar a Canvas 2D. |
-| Costos de storage por subida de imágenes | Medio | Procesar client-side; subir solo render final o thumbnail. |
-| Curva de aprendizaje muy alta | Alto | 6 presets de calidad al iniciar + onboarding interactivo de 30 s. |
-| SVG malicioso subido por usuario | Alto | Sanitización estricta + sandbox iframe para render. |
-| Comparación con herramientas free existentes | Medio | Diferenciar con webcam live + presets compartibles + AR integration. |
-| Licencias de stock images | Medio | Solo aceptar uploads del usuario + librería propia/CC0 curada. |
+- **Render:** loop sobre la grilla; por cada celda, sampleo de luminancia del pixel correspondiente de la fuente, mapeo a banda (umbrales editables en futuro, fijos en MVP: 0–85 shadow, 86–170 mid, 171–255 highlight), draw del shape/glifo en esa celda.
+- **Webcam:** `getUserMedia` → `<video>` oculto → `drawImage` al canvas → mismo pipeline.
+- **Performance objetivo:** grilla 80×80 sobre imagen 2 MP a 24+ FPS en laptop modesta. Si no llega, bajar densidad por device tier.
+- **Persistencia:**
+  - Config del editor: solo en URL (`?cfg=` base64 del JSON).
+  - Pieza enviada a AR: `localStorage`, misma key que use `admin.html` (chequear antes de implementar).
+- **Sanitización SVG (si se implementa custom shapes):** whitelist de tags (`svg, path, circle, rect, polygon, line, g`) y atributos; sin `<script>`, sin `on*`, sin `href` externos.
+- **Privacidad:** webcam nunca sale del browser; imágenes subidas tampoco. No hay tracking.
 
 ---
 
-## 10. Roadmap propuesto
+## 10. Riesgos y mitigaciones
+
+| Riesgo | Mitigación |
+|---|---|
+| Estudiantes con laptops viejas → FPS bajo | Detección de device tier; cap de grilla en mobile/low-end. |
+| Conflicto de keys en `localStorage` con admin actual | Auditar `admin.html` antes; usar la misma estructura. |
+| Curva de aprendizaje en clase de 40 min | Default preset visible al abrir + 3 piezas ejemplo en hover. |
+| Imagen pesada cuelga el browser | Resize automático al cargar (max 2 MP). |
+| Webcam denegada / no disponible | Fallback a imagen subida; mensaje claro. |
+
+---
+
+## 11. Roadmap
 
 | Semana | Hito |
 |---|---|
-| 1–2 | Spike técnico: motor de dithering en canvas + 3 bandas tonales, sin UI. |
-| 3–4 | UI básica del editor, presets hardcoded, export PNG. |
-| 5–6 | Auth + persistencia de presets en Supabase + URL pública. |
-| 7 | Export SVG + onboarding + landing. |
-| 8 | Beta cerrada (~30 usuarios). |
-| 9 | Iteración sobre feedback de beta. |
-| 10 | **Launch v1.0.** |
-| 12–14 | v1.1: webcam live + video. |
-| 16+ | Galería pública + API embed. |
+| 1 | Spike del motor de dithering en `<canvas>` con 3 bandas (sin UI). |
+| 2 | UI del editor + shapes built-in + sliders + export PNG. |
+| 3 | Integración con `admin.html`/`ar.html` ("Enviar a AR") + nav update + URL share. |
+| 4 | Webcam + presets de partida + QA con un grupo piloto de estudiantes. |
+| 5 | Ajustes post-piloto + docs para el/la docente. |
 
 ---
 
-## 11. Preguntas abiertas
+## 12. Preguntas abiertas
 
-1. ¿Monetización? Freemium (export con marca de agua para free, sin marca para pago) vs. donaciones vs. 100% free open-source.
-2. ¿Open source el motor de dithering? Sería un acelerador de adopción técnica.
-3. ¿Integrar con la galería AR de este repo desde v1 o dejarlo para v2?
-4. ¿Soporte de browsers? Definir baseline (¿Chromium + Safari 16+ + Firefox 115+?).
-5. ¿Necesitamos moderación de contenido en la galería pública desde día 1?
+1. ¿El nombre del módulo es "Componer" o algo más jugable (ej. "Pixel Lab", "Trama")?
+2. ¿La consigna inicial para la primera clase la define el equipo o el/la docente?
+3. ¿Vale la pena el modo "consigna del día" (URL con config base) ya en el MVP, o lo dejamos para después del primer piloto?
+4. ¿Querés que la pieza enviada a AR conserve metadata (config usada) para reabrirla y editarla, o se trata como imagen final inmutable?
 
 ---
 
-## 12. Apéndice — Inspiración
+## 13. Apéndice — Inspiración
 
-- Post de referencia: Anton Burmistrov, "Part 119", describiendo el flujo manual SVG → HTML → filtro de dithering.
-- Técnicas relacionadas: Floyd-Steinberg dithering, ordered dithering (Bayer), ASCII art generators clásicos.
-- Diferenciadores clave de Ditherlab vs. estado del arte: control total sobre la **forma** del píxel (no solo carácter), edición visual sin código, presets compartibles, integración con webcam y AR.
+Post de Anton Burmistrov (Part 119): flujo manual SVG → HTML generado por IA → filtro de dithering que swapea highlights/midtones/shadows por shapes custom. Composer toma ese flujo y lo vuelve un editor visual jugable, integrado en una herramienta que los estudiantes ya van a usar para montar la exposición AR.
