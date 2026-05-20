@@ -251,9 +251,11 @@ elFileInput.addEventListener('change', () => {
 
 $('btnWebcam').addEventListener('click', () => toggleWebcam());
 $('btnDemo').addEventListener('click', () => loadDemoImage());
+$('btnAnim').addEventListener('click', () => toggleAnimation());
 
 async function loadImageFile(file) {
   stopWebcam();
+  stopAnimation();
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
@@ -308,8 +310,123 @@ function loopWebcam() {
   state.rafId = requestAnimationFrame(loopWebcam);
 }
 
+// ── Animation source ────────────────────────────────────────────────────────
+const animCanvas = document.createElement('canvas');
+animCanvas.width = 1024; animCanvas.height = 1024;
+const animCtx = animCanvas.getContext('2d');
+let animStart = 0;
+
+function toggleAnimation() {
+  if (state.sourceType === 'anim') { stopAnimation(); return; }
+  stopWebcam();
+  state.source = animCanvas;
+  state.sourceType = 'anim';
+  setCanvasSize(animCanvas.width, animCanvas.height);
+  elSourceStatus.textContent = 'Animación en vivo';
+  elStageHint.textContent = '';
+  animStart = performance.now();
+  loopAnimation();
+}
+
+function stopAnimation() {
+  if (state.sourceType !== 'anim') return;
+  if (state.rafId) cancelAnimationFrame(state.rafId);
+  state.rafId = null;
+  state.source = null;
+  state.sourceType = 'none';
+  elSourceStatus.textContent = 'Sin fuente';
+}
+
+function loopAnimation() {
+  if (state.sourceType !== 'anim') return;
+  const t = (performance.now() - animStart) / 1000;
+  drawAnimationFrame(animCtx, animCanvas.width, animCanvas.height, t);
+  render();
+  state.rafId = requestAnimationFrame(loopAnimation);
+}
+
+function drawAnimationFrame(g, w, h, t) {
+  // Background gradient — slowly drifting
+  const bg = g.createLinearGradient(0, 0, w, h);
+  const phase = t * 0.2;
+  bg.addColorStop(0, `hsl(${(phase * 40) % 360}, 8%, 6%)`);
+  bg.addColorStop(1, '#000');
+  g.fillStyle = bg;
+  g.fillRect(0, 0, w, h);
+
+  const cx = w / 2, cy = h / 2;
+  const R = Math.min(w, h) * 0.34;
+
+  // Orbiting accent disc behind
+  const obx = cx + Math.cos(t * 0.7) * R * 0.5;
+  const oby = cy + Math.sin(t * 0.7) * R * 0.5;
+  const ogr = g.createRadialGradient(obx, oby, 0, obx, oby, R * 0.9);
+  ogr.addColorStop(0, '#bbbbbb');
+  ogr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = ogr;
+  g.fillRect(0, 0, w, h);
+
+  // Rotating sphere with directional light
+  const lightAngle = t * 0.9;
+  const lx = cx + Math.cos(lightAngle) * R * 0.55;
+  const ly = cy - R * 0.25 + Math.sin(lightAngle * 0.6) * R * 0.15;
+  const grad = g.createRadialGradient(lx, ly, R * 0.05, cx, cy, R * 1.1);
+  grad.addColorStop(0.00, '#ffffff');
+  grad.addColorStop(0.25, '#dddddd');
+  grad.addColorStop(0.55, '#666666');
+  grad.addColorStop(0.85, '#1a1a1a');
+  grad.addColorStop(1.00, '#000000');
+  g.save();
+  g.beginPath();
+  g.arc(cx, cy, R, 0, Math.PI * 2);
+  g.clip();
+  g.fillStyle = grad;
+  g.fillRect(cx - R, cy - R, R * 2, R * 2);
+
+  // Texture: scrolling longitudes (fake rotation of sphere)
+  const rot = t * 0.5;
+  for (let i = 0; i < 16; i++) {
+    const ang = (i / 16) * Math.PI * 2 + rot;
+    const xs = Math.cos(ang);
+    // skip back half
+    if (xs < -0.05) continue;
+    // x position projected onto disc
+    const px = cx + xs * R;
+    // width depends on cos for foreshortening
+    const lw = Math.max(2, R * 0.04 * Math.abs(xs));
+    g.fillStyle = `rgba(0,0,0,${0.15 + 0.25 * xs})`;
+    g.beginPath();
+    g.ellipse(px, cy, lw, R * Math.sqrt(1 - 0), 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  // Latitude rings (static)
+  for (let j = -3; j <= 3; j++) {
+    const y = cy + (j / 4) * R;
+    const w2 = R * Math.sqrt(Math.max(0, 1 - ((j / 4) ** 2)));
+    g.strokeStyle = 'rgba(0,0,0,0.18)';
+    g.lineWidth = R * 0.012;
+    g.beginPath();
+    g.ellipse(cx, y, w2, R * 0.04, 0, 0, Math.PI * 2);
+    g.stroke();
+  }
+  g.restore();
+
+  // Rim glow
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  const rim = g.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.08);
+  rim.addColorStop(0, 'rgba(255,255,255,0)');
+  rim.addColorStop(1, 'rgba(255,255,255,0.18)');
+  g.fillStyle = rim;
+  g.beginPath();
+  g.arc(cx, cy, R * 1.08, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+}
+
 function loadDemoImage() {
   stopWebcam();
+  stopAnimation();
   // Generated radial gradient as quick fallback demo
   const tmp = document.createElement('canvas');
   tmp.width = 1024; tmp.height = 1024;

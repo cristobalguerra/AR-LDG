@@ -545,7 +545,7 @@ body.panel-collapsed .panel-toggle svg {
 
 .source-buttons {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.4rem;
 }
 .source-buttons .btn { padding: 0.5rem 0.5rem; font-size: 0.75rem; justify-content: center; }
