@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Contador de Pesos 💸</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --green: #00e676;
+    --green-dark: #00b85c;
+    --gold: #ffd54f;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #fff;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .app {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: max(16px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+  }
+
+  /* ── Barra de progreso arriba ── */
+  .progress-zone { flex: 0 0 auto; }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .progress-labels .pct {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
+  }
+  .progress-labels .goal {
+    font-size: 13px;
+    color: #888;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .bar {
+    height: 18px;
+    border-radius: 999px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #00c853, var(--green), #69f0ae);
+    background-size: 200% 100%;
+    animation: shimmer 2.5s linear infinite;
+    transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 12px rgba(0, 230, 118, 0.6);
+    position: relative;
+  }
+  @keyframes shimmer {
+    0% { background-position: 0% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .bar-fill.gold {
+    background: linear-gradient(90deg, #ffb300, var(--gold), #fff176);
+    background-size: 200% 100%;
+    box-shadow: 0 0 16px rgba(255, 213, 79, 0.8);
+  }
+
+  /* ── Contador central ── */
+  .counter-zone {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+  }
+  .label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #666;
+    text-transform: uppercase;
+  }
+  .amount {
+    font-size: clamp(48px, 14vw, 84px);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -2px;
+    text-shadow: 0 0 30px rgba(0, 230, 118, 0.35);
+    transition: transform 0.12s ease;
+  }
+  .amount.bump { transform: scale(1.08); }
+  .amount.done { color: var(--gold); text-shadow: 0 0 40px rgba(255, 213, 79, 0.5); }
+
+  .remaining {
+    font-size: 14px;
+    color: #888;
+    font-weight: 600;
+  }
+  .remaining b { color: #ccc; }
+
+  .clicks {
+    font-size: 12px;
+    color: #555;
+    margin-top: 4px;
+  }
+
+  /* ── Botones ── */
+  .controls {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .btn-plus {
+    width: clamp(110px, 34vw, 150px);
+    height: clamp(110px, 34vw, 150px);
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: radial-gradient(circle at 30% 30%, #00ff85, var(--green) 45%, var(--green-dark));
+    color: #001a0d;
+    font-size: clamp(56px, 16vw, 76px);
+    font-weight: 800;
+    line-height: 1;
+    box-shadow:
+      0 0 0 6px rgba(0, 230, 118, 0.12),
+      0 0 40px rgba(0, 230, 118, 0.45),
+      0 12px 24px rgba(0, 0, 0, 0.6);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+    touch-action: manipulation;
+  }
+  .btn-plus:active {
+    transform: scale(0.92);
+    box-shadow:
+      0 0 0 10px rgba(0, 230, 118, 0.2),
+      0 0 60px rgba(0, 230, 118, 0.7),
+      0 6px 12px rgba(0, 0, 0, 0.6);
+  }
+  .btn-plus .sub {
+    display: block;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin-top: -6px;
+  }
+
+  .secondary {
+    display: flex;
+    gap: 14px;
+  }
+  .btn-small {
+    background: #161616;
+    border: 1px solid #2c2c2c;
+    color: #aaa;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.08s ease;
+    touch-action: manipulation;
+  }
+  .btn-small:active { background: #222; transform: scale(0.95); }
+
+  /* ── +$2.400 flotante ── */
+  .float-money {
+    position: absolute;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--green);
+    pointer-events: none;
+    text-shadow: 0 0 12px rgba(0, 230, 118, 0.6);
+    animation: floatUp 1s ease-out forwards;
+    z-index: 10;
+  }
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translateY(0) scale(0.8); }
+    20%  { transform: translateY(-20px) scale(1.1); }
+    100% { opacity: 0; transform: translateY(-110px) scale(1); }
+  }
+
+  /* ── Confetti ── */
+  .confetti {
+    position: fixed;
+    top: -12px;
+    width: 10px;
+    height: 16px;
+    pointer-events: none;
+    z-index: 100;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+
+  /* ── Banner meta lograda ── */
+  .banner {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    text-align: center;
+    padding: 20px;
+  }
+  .banner.show { display: flex; animation: pop 0.4s ease; }
+  .banner h1 { font-size: 44px; color: var(--gold); }
+  .banner p { font-size: 18px; color: #ddd; }
+  .banner .btn-small { margin-top: 14px; font-size: 15px; }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="progress-zone">
+    <div class="progress-labels">
+      <span class="pct" id="pct">0%</span>
+      <span class="goal">META: $200.000</span>
+    </div>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+  </div>
+
+  <div class="counter-zone" id="counterZone">
+    <div class="label">Llevas</div>
+    <div class="amount" id="amount">$0</div>
+    <div class="remaining" id="remaining">Faltan <b>$200.000</b></div>
+    <div class="clicks" id="clicks"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-plus" id="btnPlus" aria-label="Sumar 2400 pesos">
+      +<span class="sub">$2.400</span>
+    </button>
+    <div class="secondary">
+      <button class="btn-small" id="btnUndo">− Deshacer</button>
+      <button class="btn-small" id="btnReset">Reiniciar</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="banner" id="banner">
+  <h1>🎉 ¡META LOGRADA!</h1>
+  <p>Llegaste a los <b>$200.000</b> 💸</p>
+  <button class="btn-small" id="btnClose">Seguir contando</button>
+</div>
+
+<script>
+  const STEP = 2400;
+  const GOAL = 200000;
+  const KEY = 'peso-counter-v1';
+
+  const pesos = n => '$' + n.toLocaleString('es-CL');
+
+  const $ = id => document.getElementById(id);
+  const amountEl = $('amount'), pctEl = $('pct'), barEl = $('barFill'),
+        remainingEl = $('remaining'), clicksEl = $('clicks'),
+        banner = $('banner'), zone = $('counterZone');
+
+  let state = { total: 0, clicks: 0, celebrated: false };
+  try { state = { ...state, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; } catch (e) {}
+
+  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+  function render() {
+    amountEl.textContent = pesos(state.total);
+    const pct = Math.min(100, (state.total / GOAL) * 100);
+    pctEl.textContent = (pct < 10 ? pct.toFixed(1) : Math.floor(pct)) + '%';
+    barEl.style.width = pct + '%';
+
+    const done = state.total >= GOAL;
+    barEl.classList.toggle('gold', done);
+    amountEl.classList.toggle('done', done);
+    remainingEl.innerHTML = done
+      ? '🏆 ¡Objetivo cumplido!'
+      : 'Faltan <b>' + pesos(GOAL - state.total) + '</b>';
+    clicksEl.textContent = state.clicks + (state.clicks === 1 ? ' aporte' : ' aportes');
+  }
+
+  function bump() {
+    amountEl.classList.remove('bump');
+    void amountEl.offsetWidth;
+    amountEl.classList.add('bump');
+  }
+
+  function floatMoney() {
+    const el = document.createElement('div');
+    el.className = 'float-money';
+    el.textContent = '+' + pesos(STEP);
+    el.style.left = (35 + Math.random() * 30) + '%';
+    el.style.top = '30%';
+    zone.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  function confetti() {
+    const colors = ['#00e676', '#ffd54f', '#40c4ff', '#ff4081', '#fff176', '#69f0ae'];
+    for (let i = 0; i < 120; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+      c.style.animationDuration = (1.8 + Math.random() * 2) + 's';
+      c.style.animationDelay = (Math.random() * 0.8) + 's';
+      c.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 5000);
+    }
+  }
+
+  function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+  $('btnPlus').addEventListener('click', () => {
+    state.total += STEP;
+    state.clicks++;
+    save();
+    render();
+    bump();
+    floatMoney();
+    vibrate(20);
+    if (state.total >= GOAL && !state.celebrated) {
+      state.celebrated = true;
+      save();
+      confetti();
+      banner.classList.add('show');
+      vibrate([100, 50, 100, 50, 200]);
+    }
+  });
+
+  $('btnUndo').addEventListener('click', () => {
+    if (state.total <= 0) return;
+    state.total = Math.max(0, state.total - STEP);
+    state.clicks = Math.max(0, state.clicks - 1);
+    if (state.total < GOAL) state.celebrated = false;
+    save();
+    render();
+    bump();
+    vibrate(15);
+  });
+
+  $('btnReset').addEventListener('click', () => {
+    if (!confirm('¿Seguro que quieres volver a $0?')) return;
+    state = { total: 0, clicks: 0, celebrated: false };
+    save();
+    render();
+  });
+
+  $('btnClose').addEventListener('click', () => banner.classList.remove('show'));
+
+  render();
+</script>
+</body>
+</html>
